@@ -1,0 +1,10 @@
+{
+  "metrics": {
+    "elbow_angle_deg": {"min": 70, "max": 160},
+    "knee_angle_deg": {"min": 80, "max": 170},
+    "torso_lean_deg": {"min": 0, "max": 20},
+    "shoulder_tilt_deg": {"min": 0, "max": 12},
+    "wrist_height_ratio": {"min": 0.2, "max": 0.8},
+    "stance_width_ratio": {"min": 0.2, "max": 0.6}
+  }
+}
