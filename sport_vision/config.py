@@ -7,6 +7,7 @@ from typing import Optional
 
 @dataclass
 class PoseModelConfig:
+    model_asset_path: str = "pose_landmarker.task"
     model_complexity: int = 1
     min_detection_confidence: float = 0.5
     min_tracking_confidence: float = 0.5
@@ -16,7 +17,7 @@ class PoseModelConfig:
 @dataclass
 class SourceConfig:
     kind: str
-    video_path: Optional<Path] = None
+    video_path: Optional[Path] = None
     camera_index: int = 0
 
 

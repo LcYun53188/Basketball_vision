@@ -27,6 +27,13 @@ python -m sport_vision.main --video path\to\video.mp4
 python -m sport_vision.main --camera 0
 ```
 
+List and select cameras:
+
+```bash
+python -m sport_vision.main --list-cameras
+python -m sport_vision.main --select-camera
+```
+
 ## Options
 
 - `--reference` Path to a JSON reference file.
@@ -34,6 +41,9 @@ python -m sport_vision.main --camera 0
 - `--no-preview` Disable preview window.
 - `--no-json` Disable JSONL output.
 - `--max-frames` Stop after N frames.
+- `--list-cameras` List available cameras and exit.
+- `--select-camera` Interactively select a camera index.
+- `--camera-scan-max` Max index to probe when listing/selecting (default 5).
 
 ## Project Layout
 

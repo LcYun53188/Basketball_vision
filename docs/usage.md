@@ -22,6 +22,13 @@ python -m sport_vision.main --video path\to\video.mp4
 python -m sport_vision.main --camera 0
 ```
 
+如果需要选择摄像头：
+
+```bash
+python -m sport_vision.main --list-cameras
+python -m sport_vision.main --select-camera
+```
+
 ## 3. 常用参数
 
 - `--reference` 指定参考值 JSON 文件路径。
@@ -29,6 +36,9 @@ python -m sport_vision.main --camera 0
 - `--no-preview` 关闭预览窗口。
 - `--no-json` 关闭 JSONL 输出。
 - `--max-frames` 限制处理帧数。
+- `--list-cameras` 列出可用摄像头并退出。
+- `--select-camera` 交互式选择摄像头索引。
+- `--camera-scan-max` 列出/选择时探测的最大索引（默认 5）。
 
 示例：
 
