@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视觉篮球教练智能分析看板</title>
+    <!-- 引入 Outfit & Inter 字体，呈现现代化无衬线体感 -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- Three.js & OrbitControls for Web Page 3D View -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <!-- 头部背景渐变流 -->
+    <header class="app-header">
+        <div class="header-logo">
+            <span class="logo-icon">🏀</span>
+            <h1>SPORTVISION <span class="logo-highlight">COACH</span></h1>
+        </div>
+        <div class="system-status">
+            <span class="status-dot green"></span>
+            <span id="conn-status-text">系统就绪</span>
+        </div>
+    </header>
+
+    <main class="dashboard-grid">
+        <!-- 左侧栏：运动员建档与管理 -->
+        <section class="panel glass athlete-panel">
+            <div class="panel-header">
+                <h2>👤 运动员档案库</h2>
+            </div>
+            <div class="panel-body">
+                <!-- 注册表单 -->
+                <form id="athlete-reg-form" class="reg-form">
+                    <div class="form-row">
+                        <input type="text" id="athlete-name" placeholder="姓名" required>
+                        <select id="athlete-gender" required>
+                            <option value="male">男</option>
+                            <option value="female">女</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <input type="number" id="athlete-age" placeholder="年龄" min="1" max="100" required>
+                        <select id="athlete-position" required>
+                            <option value="guard">后卫 (Guard)</option>
+                            <option value="forward">前锋 (Forward)</option>
+                            <option value="center">中锋 (Center)</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <select id="athlete-hand" required>
+                            <option value="right">右惯用手 (Right-Handed)</option>
+                            <option value="left">左惯用手 (Left-Handed)</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary">登记档案</button>
+                    </div>
+                </form>
+
+                <div class="divider"></div>
+
+                <!-- 运动员列表 -->
+                <div class="athlete-list-wrapper">
+                    <h3>已注册球员</h3>
+                    <ul id="athletes-ul" class="fancy-list">
+                        <li class="loading-item">载入中...</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 中间：核心视频流、录影控制与 3D 轨迹映射 -->
+        <section class="center-stage">
+            <!-- 视频流监控面板 -->
+            <div class="panel glass video-panel">
+                <div class="video-header">
+                    <div class="video-tabs">
+                        <button id="tab-webcam" class="tab-btn active">📷 实时摄像头</button>
+                        <button id="tab-local-video" class="tab-btn">📁 本地视频分析</button>
+                    </div>
+                    <div class="controls-group">
+                        <!-- 服务端相机开关 -->
+                        <div class="toggle-control">
+                            <label class="switch">
+                                <input type="checkbox" id="server-camera-switch">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="control-label">服务端相机(OpenCV)</span>
+                        </div>
+                        <!-- 对比开关 -->
+                        <div class="toggle-control">
+                            <label class="switch">
+                                <input type="checkbox" id="compare-switch">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="control-label">标准动作比对</span>
+                        </div>
+                        <!-- 录制开关 -->
+                        <button id="record-btn" class="btn btn-record">
+                            <span class="record-dot"></span> 开启录制
+                        </button>
+                    </div>
+                </div>
+
+                <div class="video-container">
+                    <!-- 摄像头实时画面捕获 Canvas -->
+                    <div id="webcam-view" class="stream-view">
+                        <video id="webcam-element" autoplay playsinline muted></video>
+                        <img id="webcam-fallback-img" class="hidden" style="width: 100%; height: 100%; object-fit: contain;">
+                        <canvas id="skeleton-canvas"></canvas>
+                        <div class="overlay-metrics" id="overlay-action">状态: IDLE</div>
+                    </div>
+
+                    <!-- 本地视频播放器 -->
+                    <div id="local-video-view" class="stream-view hidden">
+                        <div class="local-video-controls">
+                            <input type="file" id="local-video-file" accept="video/*">
+                            <button id="load-video-btn" class="btn">上传并分析</button>
+                        </div>
+                        <video id="playback-video-element" controls crossorigin="anonymous"></video>
+                        <div class="analysis-status-overlay" id="analysis-status">等待载入...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 三维球场映射可视化 -->
+            <div class="panel glass court-panel">
+                <div class="panel-header">
+                    <h2>🗺️ 3D 球场投影映射</h2>
+                    <div class="court-view-toggle">
+                        <button id="toggle-view-2d" class="btn btn-secondary btn-sm active">2D 俯视</button>
+                        <button id="toggle-view-3d" class="btn btn-secondary btn-sm">3D 视角</button>
+                        <button id="start-calibrate-btn" class="btn btn-secondary btn-sm">📐 相机标定</button>
+                    </div>
+                </div>
+                <div class="court-container">
+                    <canvas id="court-canvas"></canvas>
+                    <div id="court-3d-canvas-container" class="hidden"></div>
+                    <div class="court-info">
+                        <span id="court-view-info">三维物理世界投影基准：底线中点为原点 (0, 0)。红点代表足底实时位置，带有运动拖尾。</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 右侧栏：实时指标比对与进球检测、评估报告 -->
+        <section class="panel glass telemetry-panel">
+            <div class="panel-header">
+                <h2>📊 运动技术指标反馈</h2>
+            </div>
+            <div class="panel-body">
+                <!-- 动作姿态比对仪表盘 -->
+                <div class="telemetry-section">
+                    <h3>实时角度比对 (标准 vs 实际)</h3>
+                    <div id="metrics-bars-container" class="metrics-dashboard">
+                        <div class="metric-row">
+                            <span class="metric-label">手肘夹角</span>
+                            <div class="metric-bar-wrapper">
+                                <div class="metric-bar-range" style="left: 43%; width: 50%;"></div>
+                                <div class="metric-bar-fill" id="bar-elbow" style="width: 0%;"></div>
+                            </div>
+                            <span class="metric-val" id="val-elbow">--°</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">膝盖夹角</span>
+                            <div class="metric-bar-wrapper">
+                                <div class="metric-bar-range" style="left: 47%; width: 48%;"></div>
+                                <div class="metric-bar-fill" id="bar-knee" style="width: 0%;"></div>
+                            </div>
+                            <span class="metric-val" id="val-knee">--°</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">躯干前倾</span>
+                            <div class="metric-bar-wrapper">
+                                <div class="metric-bar-range" style="left: 0%; width: 50%;"></div>
+                                <div class="metric-bar-fill" id="bar-torso" style="width: 0%;"></div>
+                            </div>
+                            <span class="metric-val" id="val-torso">--°</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- 进球监测日志 -->
+                <div class="telemetry-section">
+                    <h3>🏀 进球检测与得分</h3>
+                    <div class="goal-stats">
+                        <div class="stat-box">
+                            <span class="stat-num" id="stat-goals">0</span>
+                            <span class="stat-txt">进球数</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-num" id="stat-attempts">0</span>
+                            <span class="stat-txt">出手数</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-num" id="stat-pct">0%</span>
+                            <span class="stat-txt">命中率</span>
+                        </div>
+                    </div>
+                    <div id="goal-ticker" class="ticker-box">
+                        <div class="ticker-empty">暂无进球数据记录</div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- 报告生成 -->
+                <div class="telemetry-section">
+                    <h3>📝 AI 教学报告</h3>
+                    <div class="report-controls">
+                        <button id="gen-report-btn" class="btn btn-primary w-100">生成智能分析报告</button>
+                    </div>
+                    <div id="report-output-box" class="report-box hidden">
+                        <div class="report-scroll-content" id="report-text-div"></div>
+                        <button id="export-report-btn" class="btn btn-secondary btn-sm w-100 mt-2">📥 导出为 Markdown</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 交互标定遮罩模态框 -->
+    <div id="calibration-modal" class="modal hidden">
+        <div class="modal-content glass">
+            <h2>📐 相机标定向导</h2>
+            <p>请依次在下方的视频帧预览图上，精确点击 8 个标定控制点：</p>
+            <ol id="calibration-steps">
+                <li class="active">底线左侧角点</li>
+                <li>底线右侧角点</li>
+                <li>左侧罚球点</li>
+                <li>右侧罚球点</li>
+                <li>篮板左下角</li>
+                <li>篮板右下角</li>
+                <li>篮板右上角</li>
+                <li>篮板左上角</li>
+            </ol>
+            <div class="calibration-workspace">
+                <canvas id="calibration-canvas"></canvas>
+            </div>
+            <div class="modal-actions">
+                <button id="reset-calib-btn" class="btn btn-secondary">重选</button>
+                <button id="cancel-calib-btn" class="btn">取消</button>
+                <button id="confirm-calib-btn" class="btn btn-primary" disabled>确认标定</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
